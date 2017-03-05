@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stick in Box</title>
+  <style>
+    body, html {
+      margin: 0;
+      height: 100%;
+    }
+    #screen {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <canvas id='screen'></canvas>
+  <script id='vert' type='x-shader/x-vert' src='vert.glsl'>
+    attribute vec2 position;
+    uniform vec2 resolution;
+    void main() {
+      vec2 screenPositions = vec2(2) * (position / resolution) - vec2(1);
+      gl_PointSize = 10.0;
+      gl_Position = vec4(screenPositions, 0.0, 1.0);
+    }
+  </script>
+  <script id='frag' type='x-shader/x-frag' src='frag.glsl'>
+      precision mediump float;
+ 
+      void main() {
+        vec2 N = gl_PointCoord * vec2(2.0) - vec2(1.0);
+        float mag = dot(N.xy, N.xy);
+        if (mag > 1.0) discard;
+        gl_FragColor = vec4(0.94, 0.97, 0.96, 1.0);
+      }
+  </script>
+  <script type='text/javascript' src='verlet.js'></script>
+</body>
+</html>
