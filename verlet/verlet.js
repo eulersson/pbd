@@ -1,6 +1,9 @@
 var gl;
 
-// Helper function that compiles a shader
+/** 
+ * Helper function that compiles a shader
+ * @function
+ */
 function createShader(gl, type, source) {
   var shader = gl.createShader(type);
   gl.shaderSource(shader, source);
@@ -12,7 +15,12 @@ function createShader(gl, type, source) {
   return shader;
 }
 
-// Particle system constructor
+/**
+ * Creates an instance of ParticleSystem
+ * @class ParticleSystem
+ * @constructor
+ * @param {string} canvasId The canvas id associated with the particle system.
+ */
 function ParticleSystem(canvasId) {
   this.NUM = 2;
   this.NUM_ITERATIONS = 1;
@@ -40,7 +48,10 @@ function ParticleSystem(canvasId) {
   window.onresize = onResizeCallback.bind(this);
 }
 
-// Initializes all the WebGL-related operations
+/**
+ * Initializes all the WebGL-related operations
+ * @memberof ParticleSystem
+ */
 ParticleSystem.prototype.initializeGL = function() {
   var vertSource = document.getElementById('vert').text;
   var fragSource = document.getElementById('frag').text;
@@ -72,7 +83,10 @@ ParticleSystem.prototype.initializeGL = function() {
   gl.viewport(0, 0, this.w, this.h);
 }
 
-// Draw scene
+/**
+ * Draws all the particles in the scene.
+ * @memberof ParticleSystem
+ */
 ParticleSystem.prototype.draw = function() {
   gl.clearColor(0.23, 0.29, 0.25, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
@@ -87,14 +101,20 @@ ParticleSystem.prototype.draw = function() {
   gl.drawArrays(gl.LINE_STRIP, 0, 2);
 }
 
-// Accumulates forces for each particle
+/**
+ * Accumulates forces for each particle
+ * @memberof ParticleSystem
+ */
 ParticleSystem.prototype.accumulateForces = function() {
   for (var i = 0; i < this.NUM; i++) {
     this.accumulateForces[i] = this.gravity;
   }
 }
 
-// Perform the Verlet integration step
+/**
+ * Perform the Verlet integration step
+ * @memberof ParticleSystem
+ */
 ParticleSystem.prototype.verlet = function () {
   for (var i = 0; i < this.NUM; i++) {
     var pos = this.curPositions[i];
@@ -111,7 +131,9 @@ ParticleSystem.prototype.verlet = function () {
   }
 }
 
-// All the constraints will be satisfied
+/** All the constraints will be satisfied
+ * @memberof ParticleSystem
+ **/
 ParticleSystem.prototype.satisfyConstraints = function () {
   for (var it = 0; it < this.NUM_ITERATIONS; it++) {
     // Satisfy first constraint (box bounds)
@@ -140,7 +162,9 @@ ParticleSystem.prototype.satisfyConstraints = function () {
   }
 }  
 
-// Packs all data into single flat array and sends it to client
+/** Packs all data into single flat array and sends it to client
+ * @memberof ParticleSystem
+ */
 ParticleSystem.prototype.sendDataToGL = function () { 
   this.posData = [];
 
@@ -152,7 +176,10 @@ ParticleSystem.prototype.sendDataToGL = function () {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.posData), gl.STATIC_DRAW);
 }
 
-// Perform a substep
+/**
+ * Perform a substep
+ * @memberof ParticleSystem
+ **/
 ParticleSystem.prototype.step = function () {
   this.accumulateForces();
   this.verlet();
