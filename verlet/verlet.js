@@ -12,24 +12,35 @@ function createShader(gl, type, source) {
   return shader;
 }
 
-// Constructor
+// Particle system constructor
 function ParticleSystem(canvasId) {
   this.NUM = 2;
-  this.curPositions = [];
-  this.oldPositions = [];
-  this.forceAccumulators = [];
-  this.gravity = [0.0, -9.8];
-  this.timeStep = 1.0;
+  this.NUM_ITERATIONS = 1;
 
   var canvas = document.getElementById(canvasId);
   this.w = canvas.width = canvas.offsetWidth;
   this.h = canvas.height = canvas.offsetHeight;
   gl = canvas.getContext('webgl');
 
+  this.curPositions = [{ x: 10, y: this.h }, { x: 140, y: this.h-40 }];
+  this.oldPositions = [{ x: 10, y: this.h }, { x: 140, y: this.h-40 }];
+  this.posData = [];
+  this.forceAccumulators = [{ x: 0.0, y: -9.8 }, { x: 0.0, y: -9.8 }];
+  this.gravity = [0.0, -2.0];
+  this.timeStep = 1.0;
+
   this.initializeGL();
+
+  var onResizeCallback = function () {
+    this.w = canvas.width = canvas.offsetWidth;
+    this.h = canvas.height = canvas.offsetHeight;
+    gl.viewport(0, 0, this.w, this.h)
+  }
+
+  window.onresize = onResizeCallback.bind(this);
 }
 
-// Initializes all the WebGL-corresponding operations
+// Initializes all the WebGL-related operations
 ParticleSystem.prototype.initializeGL = function() {
   var vertSource = document.getElementById('vert').text;
   var fragSource = document.getElementById('frag').text;
@@ -52,15 +63,12 @@ ParticleSystem.prototype.initializeGL = function() {
 
   this.positionBuffer = gl.createBuffer();
 
-  var positions = [
-     30.0, 350.0,
-     80.0, 350.0,
-    500.0, 350.0,
-  ];
+  this.curPositions.forEach(function (pos) { 
+    this.posData.push(pos.x, pos.y);
+  }, this)
 
   gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.posData), gl.STATIC_DRAW);
   gl.viewport(0, 0, this.w, this.h);
 }
 
@@ -75,8 +83,7 @@ ParticleSystem.prototype.draw = function() {
 
   gl.vertexAttribPointer(this.positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
   gl.uniform2f(this.resolutionUniformLocation, this.w, this.h);
-
-  gl.drawArrays(gl.POINTS, 0, 3);
+  gl.drawArrays(gl.POINTS, 0, this.curPositions.length);
 }
 
 // Accumulates forces for each particle
@@ -87,30 +94,72 @@ ParticleSystem.prototype.accumulateForces = function() {
 }
 
 // Perform the Verlet integration step
-ParticleSystem.prototype.verlet = function() {
+ParticleSystem.prototype.verlet = function () {
+  for (var i = 0; i < this.NUM; i++) {
+    var pos = this.curPositions[i];
+    var temp = pos;
 
+    var oldpos = this.oldPositions[i];
+    var a = this.forceAccumulators[i];
+
+    pos.x = 2 * pos.x - oldpos.x + a.x * this.timeStep * this.timeStep;
+    pos.y = 2 * pos.y - oldpos.y + a.y * this.timeStep * this.timeStep;
+
+    this.curPositions[i] = pos;
+    this.oldPositions[i] = temp;
+  }
 }
 
 // All the constraints will be satisfied
-ParticleSystem.prototype.satisfyConstraints = function() {
+ParticleSystem.prototype.satisfyConstraints = function () {
+  for (var it = 0; it < this.NUM_ITERATIONS; it++) {
+    // Satisfy first constraint (box bounds)
+    for (var i = 0; i < this.NUM; i++) {
+      var pos = this.curPositions[i];
+      pos.x = Math.min(Math.max(pos.x, 0), this.w);
+      pos.y = Math.min(Math.max(pos.y, 0), this.h);
+    }
 
+    // Satisfy second constraint (stick)
+    var restlength = 140.0;
+    var pos1 = this.curPositions[0];
+    var pos2 = this.curPositions[1];
+    var delta = { x: pos2.x - pos1.x, y: pos2.y - pos1.y };
+    var deltalength = Math.sqrt(delta.x * delta.x + delta.y * delta.y);
+    var diff = (deltalength - restlength) / deltalength;
+  
+    pos1.x += delta.x * 0.5 * diff;
+    pos1.y += delta.y * 0.5 * diff;
+
+    pos2.x -= delta.x * 0.5 * diff;
+    pos2.y -= delta.y * 0.5 * diff;
+
+    this.curPositions[0] = pos1;
+    this.curPositions[1] = pos2;
+  }
+}  
+
+// Packs all data into single flat array and sends it to client
+ParticleSystem.prototype.sendDataToGL = function () { 
+  this.posData = [];
+
+  this.curPositions.forEach(function (pos) {
+    this.posData.push(pos.x, pos.y);
+  }, this);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.posData), gl.STATIC_DRAW);
 }
 
 // Perform a substep
-ParticleSystem.prototype.timeStep = function() {
+ParticleSystem.prototype.step = function () {
   this.accumulateForces();
   this.verlet();
   this.satisfyConstraints();
+  this.sendDataToGL();
   this.draw();
 }
 
 var ps = new ParticleSystem('screen');
-setInterval(ps.draw.bind(ps), 3000);
 
-/*
-WebGL: INVALID_OPERATION: vertexAttribPointer: no bound ARRAY_BUFFER
-ParticleSystem.draw @ verlet.js:95
-verlet.js:96 WebGL: INVALID_OPERATION: drawArrays: no valid shader program in use
-ParticleSystem.draw @ verlet.js:96
-verlet.js:85 WebGL: INVALID_OPERATION: bufferData: no buffer
-*/
+setInterval(ps.step.bind(ps), 20);

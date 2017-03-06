@@ -4,10 +4,13 @@
   <title>Stick in Box</title>
   <style>
     body, html {
-      margin: 0;
+      width: 100%;
       height: 100%;
+      margin: 0;
+      padding: 0;
     }
     #screen {
+      position: absolute;
       width: 100%;
       height: 100%;
     }
@@ -15,7 +18,7 @@
 </head>
 <body>
   <canvas id='screen'></canvas>
-  <script id='vert' type='x-shader/x-vert' src='vert.glsl'>
+  <script id='vert' type='x-shader/x-vert'>
     attribute vec2 position;
     uniform vec2 resolution;
     void main() {
@@ -24,7 +27,7 @@
       gl_Position = vec4(screenPositions, 0.0, 1.0);
     }
   </script>
-  <script id='frag' type='x-shader/x-frag' src='frag.glsl'>
+  <script id='frag' type='x-shader/x-frag'>
       precision mediump float;
  
       void main() {
