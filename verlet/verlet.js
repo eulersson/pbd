@@ -67,9 +67,18 @@ function ParticleSystem(canvasId) {
         this.addParticle(ev.x, this.h - ev.y);  
         break;
       case 1: // MIDDLE
-        this.addParticle(ev.x, this.h - ev.y);
-        this.addParticle(ev.x + 200 * (Math.random() * 2.0 - 1.0), this.h - ev.y - 200 * (Math.random() * 2.0 - 1.0));
-        this.constraints.push(new Constraint(this.NUM - 1, this.NUM - 2, 400 * Math.random()));
+        var pos1 = { x: ev.x, y: this.h - ev.y };  
+        var pos2 = {
+          x: ev.x + 200 * (Math.random() * 2.0 - 1.0),
+          y: this.h - ev.y - 200 * (Math.random() * 2.0 - 1.0)
+        };
+        
+        var d = { x: pos2.x - pos1.x, y: pos2.y - pos1.y };
+        var len = Math.sqrt(d.x * d.x + d.y * d.y);
+
+        this.addParticle(pos1.x, pos1.y);
+        this.addParticle(pos2.x, pos2.y);
+        this.constraints.push(new Constraint(this.NUM - 1, this.NUM - 2, len));
       default:
         break;  
     }
@@ -194,6 +203,17 @@ ParticleSystem.prototype.satisfyConstraints = function () {
       var pos2 = this.curPositions[c.B];
 
       var delta = { x: pos2.x - pos1.x, y: pos2.y - pos1.y };
+      
+      // OPTIMIZED (GETTING RID OF SQUARE ROOT)
+      // delta.x *= c.restlength * c.restlength / (delta.x * delta.x + c.restlength * c.restlength) - 0.5;
+      // delta.y *= c.restlength * c.restlength / (delta.y * delta.y + c.restlength * c.restlength) - 0.5;
+
+      // pos1.x -= delta.x;
+      // pos1.y -= delta.y;
+      
+      // pos2.x += delta.x;
+      // pos2.y += delta.y;
+      // UNOPTIMIZED
       var deltalength = Math.sqrt(delta.x * delta.x + delta.y * delta.y);
       var diff = (deltalength - c.restlength) / deltalength;
     
