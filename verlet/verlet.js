@@ -83,7 +83,8 @@ ParticleSystem.prototype.draw = function() {
 
   gl.vertexAttribPointer(this.positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
   gl.uniform2f(this.resolutionUniformLocation, this.w, this.h);
-  gl.drawArrays(gl.POINTS, 0, this.curPositions.length);
+  gl.drawArrays(gl.POINTS, 0, this.NUM);
+  gl.drawArrays(gl.LINE_STRIP, 0, 2);
 }
 
 // Accumulates forces for each particle
@@ -121,7 +122,7 @@ ParticleSystem.prototype.satisfyConstraints = function () {
     }
 
     // Satisfy second constraint (stick)
-    var restlength = 140.0;
+    var restlength = 240.0;
     var pos1 = this.curPositions[0];
     var pos2 = this.curPositions[1];
     var delta = { x: pos2.x - pos1.x, y: pos2.y - pos1.y };
