@@ -85,7 +85,7 @@ function ParticleSystem(canvasId) {
   }
 
   canvas.addEventListener('click', onClickCallback.bind(this));
-  window.addEventListener('onresize', onResizeCallback.bind(this));
+  window.addEventListener('resize', onResizeCallback.bind(this));
 }
 
 /**
