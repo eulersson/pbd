@@ -24,6 +24,7 @@ function PinConstraint(A, x, y) {
 
 PinConstraint.prototype.project = function(curPositions) {
   curPositions[this.A] = { x: this.x, y: this.y };
+  return true;
 }
 
 
@@ -49,6 +50,9 @@ SpringConstraint.prototype.project = function (curPositions) {
   var delta = { x: pos2.x - pos1.x, y: pos2.y - pos1.y };
   
   var deltalength = Math.sqrt(delta.x * delta.x + delta.y * delta.y);
+
+
+
   var diff = (deltalength - this.restlength) / deltalength;
 
   pos1.x += delta.x * 0.5 * diff;
@@ -59,6 +63,12 @@ SpringConstraint.prototype.project = function (curPositions) {
 
   curPositions[this.A] = pos1;
   curPositions[this.B] = pos2;
+
+    if (deltalength < 200) {
+      return true;
+  } else {
+    return false;
+  }
 }
 
 
@@ -68,6 +78,16 @@ SpringConstraint.prototype.project = function (curPositions) {
  * @param {string} canvasId The canvas id associated with the particle system.
  */
 function ParticleSystem(canvasId) {
+  this.clickCon = {
+    active: false,
+    breakable: false,
+    constrained: [],
+    x: 0,
+    y: 0,
+    radius: 20,
+  }
+
+
   this.NUM = 0;
   this.NUM_ITERATIONS = 1;
 
@@ -81,13 +101,17 @@ function ParticleSystem(canvasId) {
   this.curPositions = [];
   this.oldPositions = [];
   this.posData = [];
-  this.conData = [0,1];
+  this.conData = [];
   this.forceAccumulators = [];
-  this.gravity = {x: 0, y: -9.8}; 
+  this.gravity = {x: 0, y: -3.0}; 
   this.timeStep = 1.0;
   this.constraints = [];
 
   this.initializeGL();
+
+
+
+  
 
   // Events Setup
   var onResizeCallback = function () {
@@ -96,30 +120,68 @@ function ParticleSystem(canvasId) {
     gl.viewport(0, 0, this.w, this.h)
   }
 
-  var onClickCallback = function (ev) {
-    switch (ev.button) { 
-      case 0: // LEFT
-        this.addParticle(ev.x, this.h - ev.y);  
-        break;
-      case 1: // MIDDLE
-        var pos1 = { x: ev.x, y: this.h - ev.y };  
-        var pos2 = {
-          x: ev.x + 200 * (Math.random() * 2.0 - 1.0),
-          y: this.h - ev.y - 200 * (Math.random() * 2.0 - 1.0)
-        };
-        
-        var d = { x: pos2.x - pos1.x, y: pos2.y - pos1.y };
-        var len = Math.sqrt(d.x * d.x + d.y * d.y);
+  var onMouseMoveCallback = function(ev) {
+    if (this.clickCon.active) {
+      this.clickCon.x = ev.offsetX;
+      this.clickCon.y = window.innerHeight - ev.offsetY;
 
-        this.addParticle(pos1.x, pos1.y);
-        this.addParticle(pos2.x, pos2.y);
-        this.constraints.push(new SpringConstraint(this.NUM - 1, this.NUM - 2, len));
+      for (var i = 0; i < this.clickCon.constrained.length; i++) {
+        var c = this.constraints[this.constraints.length-1-i];
+        c.x = this.clickCon.x;
+        c.y = this.clickCon.y;
+      }
+
+    } 
+  }
+
+  var onMouseDownCallback = function (ev) {
+
+        this.clickCon.active = true;
+        this.clickCon.x = ev.clientX;
+        this.clickCon.y = window.innerHeight - ev.clientY;
+
+        this.curPositions.forEach(function(pos, idx) {
+          if (Math.abs(pos.x - this.clickCon.x) < this.clickCon.radius && Math.abs(pos.y - this.clickCon.y) < this.clickCon.radius) {
+            this.clickCon.constrained.push(idx);
+            this.constraints.push(new PinConstraint(idx, this.clickCon.x, this.clickCon.y));
+          }
+        }, this);
+        this.clickCon.breakable = true;
+        if (ev.button == 1) {
+          this.clickCon.breakable = false;
+        }
+
+  }
+
+  var onMouseUpCallback = function(ev) {
+    this.clickCon.active = false;
+
+    for (var i = 0; i < this.clickCon.constrained.length; i++) {
+      this.constraints.pop();
+    }
+
+    this.clickCon.constrained = [];
+  }
+
+  var onKeyDownCallback = function(ev) {
+    switch(ev.keyCode) {
+      case 38: // left arrow
+
+        this.gravity.y += 0.1;
+        break;
+      case 40: // down arrow
+        this.gravity.y -= 0.1;
+        break;
       default:
-        break;  
+        break;
+      
     }
   }
 
-  canvas.addEventListener('click', onClickCallback.bind(this));
+  window.addEventListener('keydown', onKeyDownCallback.bind(this));
+  canvas.addEventListener('mousemove', onMouseMoveCallback.bind(this));
+  canvas.addEventListener('mousedown', onMouseDownCallback.bind(this));
+  canvas.addEventListener('mouseup', onMouseUpCallback.bind(this));
   window.addEventListener('resize', onResizeCallback.bind(this));
 }
 
@@ -232,7 +294,10 @@ ParticleSystem.prototype.satisfyConstraints = function () {
     }
 
     for (var i = 0; i < this.constraints.length; i++) { 
-      this.constraints[i].project(this.curPositions);
+      var alive = this.constraints[i].project(this.curPositions);
+      if (!alive && this.clickCon.breakable) {
+        this.constraints.splice(i, 1);
+      }
     }
   }
 }  
@@ -281,11 +346,11 @@ ParticleSystem.prototype.step = function () {
 // Main execution
 var ps = new ParticleSystem('screen');
 
-var cWidth = 30;
+var cWidth = 25;
 var cHeight = 20;
 
-var rows = 30;
-var cols = 30;
+var rows = 40;
+var cols = 40;
 
 var startX = (window.innerWidth / 2.0) - (rows * cWidth) / 2.0;
 
@@ -302,7 +367,7 @@ for (var i = 0; i < rows; i++) {
       if (j === 0) { // do nothing
 
       } else {  // constraint just to left
-        ps.constraints.push(new SpringConstraint(index, index - 1, 20));
+        ps.constraints.push(new SpringConstraint(index, index - 1, cWidth - cWidth * 0.2));
       }
     }
     else if (j === 0) { // first in the row, dont link left
@@ -310,11 +375,11 @@ for (var i = 0; i < rows; i++) {
         // do nothing
       } else {
         // constraint just to top
-        ps.constraints.push(new SpringConstraint(index, index - cols, 20));
+        ps.constraints.push(new SpringConstraint(index, index - cols, cHeight));
       }
     } else { // constraint top and left
-      ps.constraints.push(new SpringConstraint(index, index - cols, 20));
-      ps.constraints.push(new SpringConstraint(index, index - 1, 20));
+      ps.constraints.push(new SpringConstraint(index, index - cols, cHeight));
+      ps.constraints.push(new SpringConstraint(index, index - 1, cWidth - cWidth * 0.2));
     }
   }
 }
