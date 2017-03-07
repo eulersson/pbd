@@ -23,7 +23,7 @@
     uniform vec2 resolution;
     void main() {
       vec2 screenPositions = vec2(2) * (position / resolution) - vec2(1);
-      gl_PointSize = 10.0;
+      gl_PointSize = 5.0;
       gl_Position = vec4(screenPositions, 0.0, 1.0);
     }
   </script>
