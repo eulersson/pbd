@@ -1,4 +1,5 @@
 var gl;
+var breakingThreshold = breakingThreshold;
 
 /** 
  * Helper function that compiles a shader.
@@ -92,7 +93,7 @@ SpringConstraint.prototype.project = function (curPositions) {
   curPositions[this.A] = pos1;
   curPositions[this.B] = pos2;
 
-  if (deltalength < 200) {
+  if (deltalength < breakingThreshold) {
     return true;
   } else {
     return false;
@@ -225,9 +226,14 @@ function ParticleSystem(canvasId) {
       case 40: // down arrow
         this.gravity.y -= 0.1;
         break;
+      case 66: // B
+        var breaking = prompt("Breaking threshold (in pixels)", "200");
+        breakingThreshold = parseFloat(breaking);
+        break;
       case 78: // N
         var iterations = prompt("How many iterations?", "1");
         this.NUM_ITERATIONS = parseInt(iterations);
+        break;
       default:
         break;
     }
