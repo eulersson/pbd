@@ -16,5 +16,5 @@ These are the things you can do:
   ** don't break it **
 * ``Middle Mouse Click & Drag`` Same as left mouse but the contraints can break.
 
-Some documentation about how **ParticleSystem**, **PinConstraint** and
-**SpringConstraint** can be found at [demo](https://docwhite.github.io/pbd/docs)
+Some [documentation](https://docwhite.github.io/pbd/out) about how
+**ParticleSystem**, **PinConstraint** and **SpringConstraint**.
