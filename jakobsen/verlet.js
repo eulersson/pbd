@@ -1,7 +1,7 @@
 var gl;
 
 /** 
- * Helper function that compiles a shader
+ * Helper function that compiles a shader.
  * @function
  */
 function createShader(gl, type, source) {
@@ -15,34 +15,55 @@ function createShader(gl, type, source) {
   return shader;
 }
 
-
+/**
+ * Creates an instance of pin constraint. This constraint will be used as rule
+ * for modifying two particles (projection). The pin constraint hard pins a
+ * particle to a specific position in space.
+ * @class
+ * @param {number} A Index of the particle that needs to be constrained.
+ * @param {number} x X position the particle needs to be hard constrained to.
+ * @param {number} y Y position the particle needs to be hard constrained to.
+ */
 function PinConstraint(A, x, y) { 
   this.A = A;
   this.x = x;
   this.y = y;
 }
 
+/**
+ * Adjusts the position of the particle associated with the constraint in
+ * order to satisfy it. This method will get called in the
+ * {@link ParticleSystem#satisfyConstraints}.
+ */
 PinConstraint.prototype.project = function(curPositions) {
   curPositions[this.A] = { x: this.x, y: this.y };
   return true;
 }
 
-
-
 /**
- * Creates an instance of Constraint. This constraint will be used as rule for
- * modifying two particles. It will be satisfied or unsatisfied.
+ * Creates an instance of pin constraint. This constraint will be used as rule
+ * for modifying two particles (projection). The spring constraint defines the
+ * distance that should exist between to particles through the rest length. The
+ * stiffness determines how hard the constraint will act on the particles to try
+ * to match the rest length.
  * @class
- * @param {number} particleA First particle to constrain.
- * @param {number} particleB Second particle to constrain.
- * @param {number} restlength Rest length between the particles.
+ * @param {number} A Index of the first particle to constrain.
+ * @param {number} B Index of the xecond particle to constrain.
+ * @param {number} restLength Rest length between the particles.
+ * @param {number} stiffness  How hard the constraint will act.
  */
-function SpringConstraint(particleA, particleB, restlength) {
-  this.A = particleA;
-  this.B = particleB;
-  this.restlength = restlength;
+function SpringConstraint(A, B, restLength, stiffness) {
+  this.A = A;
+  this.B = B;
+  this.restLength = restLength;
+  this.stiffness = stiffness;
 }
 
+/**
+ * Adjusts the positions of the particles associated with the constraint in
+ * order to satisfy it. This method will get called in the
+ * {@link ParticleSystem#satisfyConstraints}.
+ */
 SpringConstraint.prototype.project = function (curPositions) { 
   var pos1 = curPositions[this.A];
   var pos2 = curPositions[this.B];
@@ -51,15 +72,13 @@ SpringConstraint.prototype.project = function (curPositions) {
   
   var deltalength = Math.sqrt(delta.x * delta.x + delta.y * delta.y);
 
+  var diff = (deltalength - this.restLength) / deltalength;
 
+  pos1.x += delta.x * 0.5 * this.stiffness * diff;
+  pos1.y += delta.y * 0.5 * this.stiffness * diff;
 
-  var diff = (deltalength - this.restlength) / deltalength;
-
-  pos1.x += delta.x * 0.5 * diff;
-  pos1.y += delta.y * 0.5 * diff;
-
-  pos2.x -= delta.x * 0.5 * diff;
-  pos2.y -= delta.y * 0.5 * diff;
+  pos2.x -= delta.x * 0.5 * this.stiffness * diff;
+  pos2.y -= delta.y * 0.5 * this.stiffness * diff;
 
   curPositions[this.A] = pos1;
   curPositions[this.B] = pos2;
@@ -71,13 +90,46 @@ SpringConstraint.prototype.project = function (curPositions) {
   }
 }
 
-
 /**
- * Creates an instance of ParticleSystem
+ * Creates an instance for a particle system and initializes all the WebGL
+ * related commands so we can start drawing. It also sets event handlers.
  * @class
  * @param {string} canvasId The canvas id associated with the particle system.
+ * @property {number} NUM_ITERATIONS The number of times to run the method to
+ * satisfy the constraints.
+ * @property {number} TIMESTEP Used for the velvet integration. The smaller the
+ * more precise.
+ * @property {list} curPositions Current positions of the particles in system.
+ * @property {list} oldPositions Positions of the particles in the previous step.
+ * @property {list} posData Particle positoins ready to be sent to WebGL.
+ * @property {conData} conData The constraints will be drawn too, so this stores
+ * an array of indices of the posData that will be drawn using an EBO so we
+ * don't send duplicate data to WebGL. For example [2,3,4,8] means there are two
+ * constraints that need to be drawin, one drawing a line between particle with
+ * index 2 and 3 and the other one between 4 and 8.
+ * @property {list} forceAccumulators List of forces represented as an object
+ * with x and y properties that will be used by the verlet integration, before
+ * the constraint projection, to advect the particles. Think of a force
+ * accumulator as an external (not internal) force that acts on the particles.
+ * @property {object} gravity Has an x and y property to represent gravity. For
+ * this example this is what will populate the force accumulators list. So each
+ * element in the force accumulators list will have the same value as gravity.
+ * @property {list} constraint List containing all the constraints. It might be
+ * of type {@link PinConstraint} or {@link SpringConstraint}.
  */
 function ParticleSystem(canvasId) {
+  this.NUM_ITERATIONS = 1;
+  this.TIMESTEP = 1.0;
+
+  this.num_springs = 0;
+  this.curPositions = [];
+  this.oldPositions = [];
+  this.posData = [];
+  this.conData = [];
+  this.forceAccumulators = [];
+  this.gravity = {x: 0, y: -3.0}; 
+  this.constraints = [];
+
   this.clickCon = {
     active: false,
     breakable: false,
@@ -87,31 +139,13 @@ function ParticleSystem(canvasId) {
     radius: 20,
   }
 
-
-  this.NUM = 0;
-  this.NUM_ITERATIONS = 1;
-
-  this.NUM_SPRINGS = 0;
-
   var canvas = document.getElementById(canvasId);
   this.w = canvas.width = canvas.offsetWidth;
   this.h = canvas.height = canvas.offsetHeight;
   gl = canvas.getContext('webgl');
 
-  this.curPositions = [];
-  this.oldPositions = [];
-  this.posData = [];
-  this.conData = [];
-  this.forceAccumulators = [];
-  this.gravity = {x: 0, y: -3.0}; 
-  this.timeStep = 1.0;
-  this.constraints = [];
-
   this.initializeGL();
 
-
-
-  
 
   // Events Setup
   var onResizeCallback = function () {
@@ -193,11 +227,10 @@ ParticleSystem.prototype.addParticle = function (x, y) {
   var particle = { x: x, y: y };
   this.curPositions.push(particle);
   this.oldPositions.push(particle);
-  this.NUM += 1;
 }
 
 /**
- * Initializes all the WebGL-related operations
+ * Initializes all the WebGL-reladeltated operations
  * @memberof ParticleSystem
  */
 ParticleSystem.prototype.initializeGL = function() {
@@ -248,7 +281,7 @@ ParticleSystem.prototype.draw = function() {
   gl.vertexAttribPointer(this.positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
   gl.uniform2f(this.resolutionUniformLocation, this.w, this.h);
   gl.drawArrays(gl.POINTS, 0, this.curPositions.length);
-  gl.drawElements(gl.LINES, this.NUM_SPRINGS * 2, gl.UNSIGNED_SHORT, 0);
+  gl.drawElements(gl.LINES, this.num_springs * 2, gl.UNSIGNED_SHORT, 0);
 }
 
 /**
@@ -273,8 +306,8 @@ ParticleSystem.prototype.verlet = function () {
     var oldpos = this.oldPositions[i];
     var a = this.forceAccumulators[i];
 
-    pos.x = 2 * pos.x - oldpos.x + a.x * this.timeStep * this.timeStep;
-    pos.y = 2 * pos.y - oldpos.y + a.y * this.timeStep * this.timeStep;
+    pos.x = 2 * pos.x - oldpos.x + a.x * this.TIMESTEP * this.TIMESTEP;
+    pos.y = 2 * pos.y - oldpos.y + a.y * this.TIMESTEP * this.TIMESTEP;
 
     this.curPositions[i] = pos;
     this.oldPositions[i] = temp;
@@ -313,16 +346,16 @@ ParticleSystem.prototype.sendDataToGL = function () {
   }, this);
 
   this.conData = [];
-  this.NUM_SPRINGS = 0;
+  this.num_springs = 0;
   this.constraints.forEach(function (con) {
     if (con instanceof SpringConstraint) {
       this.conData.push(con.A);
       this.conData.push(con.B);
-      this.NUM_SPRINGS += 1;
+      this.num_springs += 1;
     }
   }, this);
   
-  this.NUM_SPRINGS = this.conData.length / 2;
+  this.num_springs = this.conData.length / 2;
 
   gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.posData), gl.DYNAMIC_DRAW);
@@ -367,7 +400,7 @@ for (var i = 0; i < rows; i++) {
       if (j === 0) { // do nothing
 
       } else {  // constraint just to left
-        ps.constraints.push(new SpringConstraint(index, index - 1, cWidth - cWidth * 0.2));
+        ps.constraints.push(new SpringConstraint(index, index - 1, cWidth - cWidth * 0.2, 1.0));
       }
     }
     else if (j === 0) { // first in the row, dont link left
@@ -375,11 +408,11 @@ for (var i = 0; i < rows; i++) {
         // do nothing
       } else {
         // constraint just to top
-        ps.constraints.push(new SpringConstraint(index, index - cols, cHeight));
+        ps.constraints.push(new SpringConstraint(index, index - cols, cHeight, 1.0));
       }
     } else { // constraint top and left
-      ps.constraints.push(new SpringConstraint(index, index - cols, cHeight));
-      ps.constraints.push(new SpringConstraint(index, index - 1, cWidth - cWidth * 0.2));
+      ps.constraints.push(new SpringConstraint(index, index - cols, cHeight, 1.0));
+      ps.constraints.push(new SpringConstraint(index, index - 1, cWidth - cWidth * 0.2, 0.8));
     }
   }
 }
