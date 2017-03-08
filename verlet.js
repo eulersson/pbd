@@ -1,5 +1,5 @@
 var gl;
-var breakingThreshold = breakingThreshold;
+var breakingThreshold = 200.0;
 
 /** 
  * Helper function that compiles a shader.
