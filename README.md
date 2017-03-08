@@ -15,3 +15,6 @@ These are the things you can do:
 * ``Left Mouse Click & Drag`` Create pin constraints that drag the points but
   ** don't break it **
 * ``Middle Mouse Click & Drag`` Same as left mouse but the contraints can break.
+
+Some documentation about how **ParticleSystem**, **PinConstraint** and
+**SpringConstraint** can be found at [demo](https://docwhite.github.io/pbd/docs)
