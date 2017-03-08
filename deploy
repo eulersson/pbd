@@ -3,4 +3,4 @@ git push origin :gh-pages
 git add ./jakobsen
 git commit -m "Deploy updated documentation"
 git subtree push --prefix jakobsen origin gh-pages
-git reset --hard HEAD
+git reset --hard HEAD^
