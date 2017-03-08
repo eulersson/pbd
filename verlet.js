@@ -14,7 +14,7 @@ function createShader(gl, type, source) {
   gl.compileShader(shader);
   var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
   if (!success) {
-    console.log(gl.getShaderInfoLog(shader));
+    console.error(gl.getShaderInfoLog(shader));
   }
   return shader;
 }
@@ -217,7 +217,7 @@ function ParticleSystem(canvasId) {
     this.clickCon.constrained = [];
   }
 
-  var onKeyDownCallback = function(ev) {
+  var onKeyDownCallback = function (ev) {
     switch(ev.keyCode) {
       case 38: // left arrow
         this.gravity.y += 0.1;
@@ -225,6 +225,9 @@ function ParticleSystem(canvasId) {
       case 40: // down arrow
         this.gravity.y -= 0.1;
         break;
+      case 78: // N
+        var iterations = prompt("How many iterations?", "1");
+        this.NUM_ITERATIONS = parseInt(iterations);
       default:
         break;
     }
@@ -264,7 +267,7 @@ ParticleSystem.prototype.initializeGL = function() {
 
   var success = gl.getProgramParameter(this.program, gl.LINK_STATUS);
   if (!success) {
-    console.log(gl.getProgramInfoLog(this.program));
+    console.error(gl.getProgramInfoLog(this.program));
   }
 
   this.positionAttributeLocation = gl.getAttribLocation(this.program, 'position');
