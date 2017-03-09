@@ -12,9 +12,10 @@ These are the things you can do:
 
 * ``UP ARROW`` Increases the gravity (adds positive values).
 * ``DOWN ARROW`` Decreases the gravity (subtracts positive values).
-* ``Left Mouse Click & Drag`` Create pin constraints that drag the points but
-  ** don't break it **
-* ``Middle Mouse Click & Drag`` Same as left mouse but the contraints can break.
+* ``Left Mouse Click & Drag`` Create pin constraints that drag the points.
+* ``Middle Mouse Click & Drag`` Same as left mouse but the contraints cannot break.
+* ``N`` Sets the number of iterations to evaluate the constraints.
+* ``B`` Sets the breaking threshold (in pixels) to tell when the spring constraint should break.
 
 Some [documentation](https://docwhite.github.io/pbd/out) about how
 **ParticleSystem**, **PinConstraint** and **SpringConstraint**.
