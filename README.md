@@ -1,6 +1,6 @@
 # Position Based Dynamics
 
-![Implementation](https://raw.githubusercontent.com/docwhite/pbd/work/jakobsen/image.png)
+![Implementation](https://raw.githubusercontent.com/docwhite/pbd/master/jakobsen/image.png)
 
 Implementation of constraint-based verlet solvers explained by Jakobsen's
 [Advanced Character Physics](http://www.cs.cmu.edu/afs/cs/academic/class/15462-s13/www/lec_slides/Jakobsen.pdf)
