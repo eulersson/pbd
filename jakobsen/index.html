@@ -1,97 +1,83 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Constraint-Driven Verlet Simulation</title>
+  <head>
+    <title>Constraint-Driven Verlet Simulation</title>
 
-  <meta name="description" content="Cloth simulation based on Jakobsen's paper Advanced Character Physics. Using pin constraints and spring constraints." />
+    <meta
+      name="description"
+      content="Cloth simulation based on Jakobsen's paper Advanced Character Physics. Using pin constraints and spring constraints."
+    />
 
-  <!-- Twitter Card data -->
-  <meta name="twitter:card" value="summary">
+    <!-- Twitter Card data -->
+    <meta name="twitter:card" value="summary" />
 
-  <!-- Open Graph data -->
-  <meta property="og:title" content="Constraint-Driven Verlet Simulation" />
-  <meta property="og:type" content="article" />
-  <meta property="og:url" content="https://docwhite.github.io/pbd/" />
-  <meta property="og:image" content="https://docwhite.github.io/pbd/image.png" />
-  <meta property="og:description" content="Cloth simulation based on Jakobsen's paper Advanced Character Physics. Using pin constraints and spring constraints." />
+    <!-- Open Graph data -->
+    <meta property="og:title" content="Constraint-Driven Verlet Simulation" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://docwhite.github.io/pbd/" />
+    <meta
+      property="og:image"
+      content="https://docwhite.github.io/pbd/image.png"
+    />
+    <meta
+      property="og:description"
+      content="Cloth simulation based on Jakobsen's paper Advanced Character Physics. Using pin constraints and spring constraints."
+    />
 
-  <style>
-    body, html {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    #screen {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-    }
-    #dialog {
-      position: fixed;
-      width: 700px;
-      height: 540px;
-      top: calc(50% - 270px);
-      left: calc(50% - 350px);
-      font-family: sans-serif;
-      text-align: center;
-      color: rgb(240, 247, 244);
-      background: rgba(40, 49, 43, 0.8);
-    }
-    span {
-      background: rgba(240, 247, 244, 0.2);
-      border: 1px solid rgb(240, 247, 244);
-      padding: 1px 5px;
-      border-radius: 5px;
-    }
-    p {
-      margin: 5px 0 30px 0;
-      padding: 0;
-    }
-  </style>
-</head>
-<body>
-  <canvas id='screen'></canvas>
-  <div id='dialog'>
-    <h1>Instructions</h1>
-    <span class='key'>&#x2191;</span>
-    <p>Increase gravity by 0.1</p>
-    <span class='key'>&#x2193;</span>
-    <p>Decrease gravity by 0.1</p>
-    <span class='key'>B</span>
-    <p>Change breaking threshold (pixels)</p>
-    <span class='key'>N</span>
-    <p>Change number of iterations</p>
-    <span class='key'>Left Mouse Click Drag</span>
-    <p>Pin constraint (breakable)</p>
-    <span class='key'>Middle Mouse Click Drag</span>
-    <p>Pin constraint (non breakable)</p>
-    <p><i>(Click dialog to close)</i></p>
-  </div>
-
-  <script id='vert' type='x-shader/x-vert'>
-    attribute vec2 position;
-    uniform vec2 resolution;
-    void main() {
-      vec2 screenPositions = vec2(2) * (position / resolution) - vec2(1);
-      gl_PointSize = 5.0;
-      gl_Position = vec4(screenPositions, 0.0, 1.0);
-    }
-  </script>
-  <script id='frag' type='x-shader/x-frag'>
-      precision mediump float;
- 
-      void main() {
-        gl_FragColor = vec4(0.94, 0.97, 0.96, 1.0);
+    <style>
+      body,
+      html {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
       }
-  </script>
-  <script type='text/javascript'>
-    var dialog = document.getElementById('dialog');
-    dialog.addEventListener('click', function() {
-      var parent = this.parentNode;
-      parent.removeChild(this);
-    });
-  </script>
-  <script type='text/javascript' src='verlet.js'></script>
-</body>
+      #screen {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+      #dialog {
+        position: fixed;
+        width: 700px;
+        height: 540px;
+        top: calc(50% - 270px);
+        left: calc(50% - 350px);
+        font-family: sans-serif;
+        text-align: center;
+        color: rgb(240, 247, 244);
+        background: rgba(40, 49, 43, 0.8);
+      }
+      span {
+        background: rgba(240, 247, 244, 0.2);
+        border: 1px solid rgb(240, 247, 244);
+        padding: 1px 5px;
+        border-radius: 5px;
+      }
+      p {
+        margin: 5px 0 30px 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="screen"></canvas>
+    <script id="vert" type="x-shader/x-vert">
+      attribute vec2 position;
+      uniform vec2 resolution;
+      void main() {
+        vec2 screenPositions = vec2(2) * (position / resolution) - vec2(1);
+        gl_PointSize = 5.0;
+        gl_Position = vec4(screenPositions, 0.0, 1.0);
+      }
+    </script>
+    <script id="frag" type="x-shader/x-frag">
+      precision mediump float;
+
+      void main() {
+        gl_FragColor = vec4(0.8, 0.8, 0.8, 1.0);
+      }
+    </script>
+    <script type="text/javascript" src="verlet.js"></script>
+  </body>
 </html>

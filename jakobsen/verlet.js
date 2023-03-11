@@ -1,7 +1,7 @@
 var gl;
 var breakingThreshold = 200.0;
 
-/** 
+/**
  * Helper function that compiles a shader.
  * @function
  * @param {object} gl WebGL context extracted from the canvas.
@@ -29,7 +29,7 @@ function createShader(gl, type, source) {
  * @param {number} x X position the particle needs to be hard constrained to.
  * @param {number} y Y position the particle needs to be hard constrained to.
  */
-function PinConstraint(A, x, y) { 
+function PinConstraint(A, x, y) {
   this.A = A;
   this.x = x;
   this.y = y;
@@ -43,10 +43,10 @@ function PinConstraint(A, x, y) {
  * @returns {boolean} If the constraint is still alive, in oder words if it does
  * not have to be deleted.
  */
-PinConstraint.prototype.project = function(curPositions) {
+PinConstraint.prototype.project = function (curPositions) {
   curPositions[this.A] = { x: this.x, y: this.y };
   return true;
-}
+};
 
 /**
  * Creates an instance of pin constraint. This constraint will be used as rule
@@ -75,7 +75,7 @@ function SpringConstraint(A, B, restLength, stiffness) {
  * @returns {boolean} If the constraint is still alive, in oder words if it does
  * not have to be deleted.
  */
-SpringConstraint.prototype.project = function (curPositions) { 
+SpringConstraint.prototype.project = function (curPositions) {
   var pos1 = curPositions[this.A];
   var pos2 = curPositions[this.B];
 
@@ -98,7 +98,7 @@ SpringConstraint.prototype.project = function (curPositions) {
   } else {
     return false;
   }
-}
+};
 
 /**
  * Creates an instance for a particle system and initializes all the WebGL
@@ -149,9 +149,9 @@ function ParticleSystem(canvasId) {
   this.constraints = [];
   this.conData = [];
 
-  this.gravity = {x: 0, y: -3.0}; 
+  this.gravity = { x: 0, y: -0.4 };
   this.forceAccumulators = [];
-  
+
   this.num_springs = 0;
 
   this.clickCon = {
@@ -161,12 +161,12 @@ function ParticleSystem(canvasId) {
     x: 0,
     y: 0,
     radius: 20,
-  }
+  };
 
   var canvas = document.getElementById(canvasId);
   this.w = canvas.width = canvas.offsetWidth;
   this.h = canvas.height = canvas.offsetHeight;
-  gl = canvas.getContext('webgl');
+  gl = canvas.getContext("webgl");
 
   this.initializeGL();
 
@@ -174,30 +174,32 @@ function ParticleSystem(canvasId) {
   var onResizeCallback = function () {
     this.w = canvas.width = canvas.offsetWidth;
     this.h = canvas.height = canvas.offsetHeight;
-    gl.viewport(0, 0, this.w, this.h)
-  }
+    gl.viewport(0, 0, this.w, this.h);
+  };
 
-  var onMouseMoveCallback = function(ev) {
+  var onMouseMoveCallback = function (ev) {
     if (this.clickCon.active) {
       this.clickCon.x = ev.offsetX;
       this.clickCon.y = window.innerHeight - ev.offsetY;
 
       for (var i = 0; i < this.clickCon.constrained.length; i++) {
-        var c = this.constraints[this.constraints.length-1-i];
+        var c = this.constraints[this.constraints.length - 1 - i];
         c.x = this.clickCon.x;
         c.y = this.clickCon.y;
       }
-    } 
-  }
+    }
+  };
 
   var onMouseDownCallback = function (ev) {
     this.clickCon.active = true;
     this.clickCon.x = ev.clientX;
     this.clickCon.y = window.innerHeight - ev.clientY;
 
-    this.curPositions.forEach(function(pos, idx) {
-      if (Math.abs(pos.x - this.clickCon.x) < this.clickCon.radius &&
-          Math.abs(pos.y - this.clickCon.y) < this.clickCon.radius) {
+    this.curPositions.forEach(function (pos, idx) {
+      if (
+        Math.abs(pos.x - this.clickCon.x) < this.clickCon.radius &&
+        Math.abs(pos.y - this.clickCon.y) < this.clickCon.radius
+      ) {
         this.clickCon.constrained.push(idx);
         this.constraints.push(
           new PinConstraint(idx, this.clickCon.x, this.clickCon.y)
@@ -205,21 +207,27 @@ function ParticleSystem(canvasId) {
       }
     }, this);
     this.clickCon.breakable = true;
-    if (ev.button == 1) { // Middle click
+    if (ev.button == 1) {
+      // Middle click
       this.clickCon.breakable = false;
     }
-  }
+  };
 
-  var onMouseUpCallback = function(ev) {
+  var onMouseUpCallback = function (ev) {
+    if (this.gravity.y > -1) {
+      this.gravity.y = -1.2;
+    } else {
+      this.gravity.y -= 0.2;
+    }
     this.clickCon.active = false;
     for (var i = 0; i < this.clickCon.constrained.length; i++) {
       this.constraints.pop();
     }
     this.clickCon.constrained = [];
-  }
+  };
 
   var onKeyDownCallback = function (ev) {
-    switch(ev.keyCode) {
+    switch (ev.keyCode) {
       case 38: // left arrow
         this.gravity.y += 0.1;
         break;
@@ -237,31 +245,31 @@ function ParticleSystem(canvasId) {
       default:
         break;
     }
-  }
-  canvas.addEventListener('mousemove', onMouseMoveCallback.bind(this));
-  canvas.addEventListener('mousedown', onMouseDownCallback.bind(this));
-  canvas.addEventListener('mouseup', onMouseUpCallback.bind(this));
-  window.addEventListener('keydown', onKeyDownCallback.bind(this));
-  window.addEventListener('resize', onResizeCallback.bind(this));
+  };
+  canvas.addEventListener("mousemove", onMouseMoveCallback.bind(this));
+  canvas.addEventListener("mousedown", onMouseDownCallback.bind(this));
+  canvas.addEventListener("mouseup", onMouseUpCallback.bind(this));
+  window.addEventListener("keydown", onKeyDownCallback.bind(this));
+  window.addEventListener("resize", onResizeCallback.bind(this));
 }
 
 /**
  * Places a new particle at a given position.
  * @memberof ParticleSystem
  */
-ParticleSystem.prototype.addParticle = function (x, y) { 
+ParticleSystem.prototype.addParticle = function (x, y) {
   var particle = { x: x, y: y };
   this.curPositions.push(particle);
   this.oldPositions.push(particle);
-}
+};
 
 /**
  * Initializes all the WebGL-reladeltated operations
  * @memberof ParticleSystem
  */
-ParticleSystem.prototype.initializeGL = function() {
-  var vertSource = document.getElementById('vert').text;
-  var fragSource = document.getElementById('frag').text;
+ParticleSystem.prototype.initializeGL = function () {
+  var vertSource = document.getElementById("vert").text;
+  var fragSource = document.getElementById("frag").text;
 
   var vertShader = createShader(gl, gl.VERTEX_SHADER, vertSource);
   var fragShader = createShader(gl, gl.FRAGMENT_SHADER, fragSource);
@@ -276,27 +284,37 @@ ParticleSystem.prototype.initializeGL = function() {
     console.error(gl.getProgramInfoLog(this.program));
   }
 
-  this.positionAttributeLocation = gl.getAttribLocation(this.program, 'position');
-  this.resolutionUniformLocation = gl.getUniformLocation(this.program, 'resolution');
+  this.positionAttributeLocation = gl.getAttribLocation(
+    this.program,
+    "position"
+  );
+  this.resolutionUniformLocation = gl.getUniformLocation(
+    this.program,
+    "resolution"
+  );
 
   this.positionBuffer = gl.createBuffer();
   this.constraintsEBO = gl.createBuffer();
 
-  this.curPositions.forEach(function (pos) { 
+  this.curPositions.forEach(function (pos) {
     this.posData.push(pos.x, pos.y);
-  }, this)
+  }, this);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.posData), gl.STATIC_DRAW);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array(this.posData),
+    gl.STATIC_DRAW
+  );
   gl.viewport(0, 0, this.w, this.h);
-}
+};
 
 /**
  * Draws all the particles in the scene.
  * @memberof ParticleSystem
  */
-ParticleSystem.prototype.draw = function() {
-  gl.clearColor(0.23, 0.29, 0.25, 1.0);
+ParticleSystem.prototype.draw = function () {
+  gl.clearColor(1, 1, 1, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   gl.useProgram(this.program);
@@ -304,21 +322,28 @@ ParticleSystem.prototype.draw = function() {
   gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.constraintsEBO);
 
-  gl.vertexAttribPointer(this.positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(
+    this.positionAttributeLocation,
+    2,
+    gl.FLOAT,
+    false,
+    0,
+    0
+  );
   gl.uniform2f(this.resolutionUniformLocation, this.w, this.h);
   gl.drawArrays(gl.POINTS, 0, this.curPositions.length);
   gl.drawElements(gl.LINES, this.num_springs * 2, gl.UNSIGNED_SHORT, 0);
-}
+};
 
 /**
  * Accumulates forces for each particle
  * @memberof ParticleSystem
  */
-ParticleSystem.prototype.accumulateForces = function() {
+ParticleSystem.prototype.accumulateForces = function () {
   for (var i = 0; i < this.curPositions.length; i++) {
     this.forceAccumulators[i] = this.gravity;
   }
-}
+};
 
 /**
  * Perform the Verlet integration step
@@ -338,12 +363,12 @@ ParticleSystem.prototype.verlet = function () {
     this.curPositions[i] = pos;
     this.oldPositions[i] = temp;
   }
-}
+};
 
 /**
  * All the constraints will be satisfied by modifying the current positions.
  * @memberof ParticleSystem
-**/
+ **/
 ParticleSystem.prototype.satisfyConstraints = function () {
   for (var it = 0; it < this.NUM_ITERATIONS; it++) {
     // Satisfy first constraint (box bounds)
@@ -354,7 +379,7 @@ ParticleSystem.prototype.satisfyConstraints = function () {
     }
 
     // Satisfy rest of the constraints (pin or spring)
-    for (var i = 0; i < this.constraints.length; i++) { 
+    for (var i = 0; i < this.constraints.length; i++) {
       var alive = this.constraints[i].project(this.curPositions);
       if (!alive && this.clickCon.breakable) {
         // If constraint returns false means it should die (for example
@@ -364,12 +389,12 @@ ParticleSystem.prototype.satisfyConstraints = function () {
       }
     }
   }
-}  
+};
 
 /** Packs all data into single flat array and sends it to client WebGL.
  * @memberof ParticleSystem
  */
-ParticleSystem.prototype.sendDataToGL = function () { 
+ParticleSystem.prototype.sendDataToGL = function () {
   this.posData = [];
 
   this.curPositions.forEach(function (pos) {
@@ -385,15 +410,23 @@ ParticleSystem.prototype.sendDataToGL = function () {
       this.num_springs += 1;
     }
   }, this);
-  
+
   this.num_springs = this.conData.length / 2;
 
   gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.posData), gl.DYNAMIC_DRAW);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array(this.posData),
+    gl.DYNAMIC_DRAW
+  );
 
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.constraintsEBO);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.conData), gl.DYNAMIC_DRAW);
-}
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    new Uint16Array(this.conData),
+    gl.DYNAMIC_DRAW
+  );
+};
 
 /**
  * This is basically the game loop. It accumulates the forces, then performs the
@@ -408,51 +441,94 @@ ParticleSystem.prototype.step = function () {
   this.satisfyConstraints();
   this.sendDataToGL();
   this.draw();
-}
+};
 
 // =============================================================================
 // LET'S PLAY!
 // =============================================================================
-var ps = new ParticleSystem('screen');
+var ps = new ParticleSystem("screen");
 
 // This creates a grid of particles connected following the rule:
-//   1. If it is in the first row just connect to LEFT.
-//   2. If it is in the first column DON'T' connect to LEFT.
-//   3. If it is not in either first row or last row connect to LEFT and UP.
+//   1. If it is the left-most upper-most, only pin and do not connect.
+//   2. If it is in the first row just connect to LEFT.
+//   3. If it is in the first column DON'T' connect to LEFT.
+//   4. If it is not in either first row or last row connect to LEFT and UP.
 var cWidth = 25;
 var cHeight = 20;
-var rows = 40;
-var cols = 40;
-var startX = (window.innerWidth / 2.0) - (rows * cWidth) / 2.0;
+var rows = 15;
+var cols = 50;
+// var startX = window.innerWidth / 2.0 - (rows * cWidth) / 2.0;
+var startX = 0
 
-for (var i = 0; i < rows; i++) { 
-  for (var j = 0; j < cols; j++) { 
-    var index = i * rows + j;
+for (var i = 0; i < rows; i++) {
+  for (var j = 0; j < cols; j++) {
+    var index = i * cols + j;
+    console.log(`IDX (${i},${j}): ${index}`);
     var positionX = startX + j * cWidth;
-    var positionY = window.innerHeight - (i * cHeight);
-    
+    var positionY = window.innerHeight - i * cHeight;
+
     ps.addParticle(positionX, positionY);
 
-    if (i === 0) {  // first in the colum, dont link up, pin constrain
+    if (i === 0) {
+      // First in the column, dont link up, pin constrain.
+      console.log(`Pin constraint for particle ${index}`);
       ps.constraints.push(new PinConstraint(index, positionX, positionY));
-      if (j === 0) { // do nothing
-
-      } else {  // constraint just to left
-        ps.constraints.push(new SpringConstraint(index, index - 1, cWidth - cWidth * 0.2, 1.0));
+      if (j === 0) {
+        // Do nothing.
+      } else {
+        // Constraint just to left.
+        let restLength = cWidth - cWidth * 0.2;
+        let stiffness = 1.0;
+        console.log(
+          `000 Linking particle ${index} to left ${
+            index - 1
+          }; restLength: ${restLength}; stiffness: ${stiffness}`
+        );
+        ps.constraints.push(
+          new SpringConstraint(index, index - 1, restLength, stiffness)
+        );
       }
-    }
-    else if (j === 0) { // first in the row, dont link left
+    } else if (j === 0) {
+      // First in the row, dont link left.
       if (i === 0) {
         // do nothing
       } else {
-        // constraint just to top
-        ps.constraints.push(new SpringConstraint(index, index - cols, cHeight, 1.0));
+        // Constraint just to top.
+        let restLength = cHeight;
+        let stiffness = 1.0;
+        console.log(
+          `111 Linking particle ${index} to top ${
+            index - cols
+          }; restLength: ${restLength}; stiffness: ${stiffness}`
+        );
+        ps.constraints.push(
+          new SpringConstraint(index, index - cols, restLength, stiffness)
+        );
       }
-    } else { // constraint top and left
-      ps.constraints.push(new SpringConstraint(index, index - cols, cHeight, 1.0));
-      ps.constraints.push(new SpringConstraint(index, index - 1, cWidth - cWidth * 0.2, 0.8));
+    } else {
+      // constraint top and left
+      let restLength = cHeight;
+      let stiffness = 1.0;
+      console.log(
+        `222.1 Linking particle ${index} to top ${
+          index - cols
+        }; restLength: ${restLength}; stiffness: ${stiffness}`
+      );
+      ps.constraints.push(
+        new SpringConstraint(index, index - cols, restLength, stiffness)
+      );
+      restLength = cWidth - cWidth * 0.2;
+      stiffness = 1;
+      console.log(
+        `222.2 Linking particle ${index} to left ${
+          index - 1
+        }; restLength: ${restLength}; stiffness: ${stiffness}`
+      );
+      ps.constraints.push(
+        new SpringConstraint(index, index - 1, restLength, stiffness)
+      );
     }
   }
 }
 
-setInterval(ps.step.bind(ps), 20);  // Run the main loop.
+setInterval(ps.step.bind(ps), 20); // Run the main loop.
